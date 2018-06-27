@@ -2,6 +2,7 @@ import os
 import shlex
 import MockSSH
 import sys
+import time
 from threading import Thread
 
 from twisted.conch import avatar, interfaces as conchinterfaces, recvline
@@ -26,7 +27,9 @@ class ShowCommand(MockSSH.SSHCommand):
 
     def __call__(self, protocol, *args):
         if self.cmd_delay is not 0:
-            time.sleep(self.cmd_delay)
+            print "Sleeping for %f seconds" % (self.cmd_delay / 1000.0)
+            time.sleep(self.cmd_delay / 1000.0)
+
         MockSSH.SSHCommand.__init__(self, protocol, self.name, *args)
         return self
 
@@ -49,7 +52,9 @@ class PromptChangingCommand(MockSSH.SSHCommand):
 
     def __call__(self, protocol, *args):
         if self.cmd_delay is not 0:
-            time.sleep(self.cmd_delay)
+            print "Sleeping for %f seconds" % (self.cmd_delay / 1000.0)
+            time.sleep(self.cmd_delay / 1000.0)
+
         MockSSH.SSHCommand.__init__(self, protocol, self.name, *args)
         return self
 
@@ -81,7 +86,9 @@ class SimplePromptingCommand(MockSSH.SSHCommand):
 
     def start(self):
         if self.cmd_delay is not 0:
-            time.sleep(self.cmd_delay)
+            print "Sleeping for %f seconds" % (self.cmd_delay / 1000.0)
+            time.sleep(self.cmd_delay / 1000.0)
+
         self.write(self.prompt)
         self.protocol.password_input = True
 
