@@ -23,13 +23,13 @@ echo "LOGOUT and LOGIN again so that the limits apply"
 ```
 sudo pip install MockSSH==1.4.5
 
-python mockdevice.py 127.0.0.1 9999 11000 devices/cisco_IOS.json
+python mockdevice.py 127.0.0.1 9999 11000 ssh devices/cisco_IOS.json
 ```
 
 ## Running the script to mount devices in ODL:
 
 ```
-./generateMount.sh 127.0.0.1 10000 10100
+./generateMount.sh 127.0.0.1 10000 10100 ssh
 ```
 
 # .json files to represent a device :

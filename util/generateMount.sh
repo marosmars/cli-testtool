@@ -6,6 +6,7 @@ set -e
 IP=$1
 LOW_PORT=$2
 HIGH_PORT=$3
+PROTOCOL=$4
 PORT_NUM=`expr $HIGH_PORT - $LOW_PORT`
 MOUNT_ID_PREFIX="cli-"
 
@@ -35,7 +36,7 @@ do
      
       \"cli-topology:host\" : \"$IP\",
       \"cli-topology:port\" : \"$port\",
-      \"cli-topology:transport-type\" : \"ssh\",
+      \"cli-topology:transport-type\" : \"$PROTOCOL\",
       
       \"cli-topology:device-type\" : \"ios\",
       \"cli-topology:device-version\" : \"15.3\",

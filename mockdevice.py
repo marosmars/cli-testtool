@@ -18,6 +18,7 @@ hostname#
 import sys, time
 import MockSSH
 import MockSSHExtensions
+import traceback
 
 import json
 from collections import defaultdict
@@ -50,7 +51,8 @@ def main():
     last_batch = all_ports % batch_size
     processes = all_ports / batch_size
 
-    device_file = sys.argv[4]
+    protocol_type = sys.argv[4]
+    device_file = sys.argv[5]
     interface = sys.argv[1]
 
     log.startLogging(sys.stdout)
@@ -72,7 +74,7 @@ def main():
         if i == processes - 1:
             ending_port = ending_port + 1
 
-        args.append((starting_port, ending_port, interface, data))
+        args.append((starting_port, ending_port, interface, protocol_type, data))
 
     r = pool.map_async(spawn_server_wrapper, args)
 
@@ -80,7 +82,7 @@ def main():
         starting_port = port_low + processes*batch_size + 1
         ending_port = port_high + 1
         print "Spawning process for ports: %s - %s" % (starting_port, ending_port)
-        r2 = pool.map_async(spawn_server_wrapper, [(starting_port, ending_port, interface, data)])
+        r2 = pool.map_async(spawn_server_wrapper, [(starting_port, ending_port, interface, protocol_type, data)])
         try:
             r2.wait()
         except KeyboardInterrupt:
@@ -91,7 +93,7 @@ def main():
 def spawn_server_wrapper(args):
     spawn_server(*args)
 
-def spawn_server(port_low, port_high, interface, data):
+def spawn_server(port_low, port_high, interface, protocol_type, data):
 
     for i in range(port_low, port_high):
         try:
@@ -113,12 +115,16 @@ def spawn_server(port_low, port_high, interface, data):
                 local_commands.append(command)
 
 
-            sshFactory = MockSSH.getSSHFactory(local_commands, default_prompt, ".", **users)
-            # FIXME Make telnet work
-            #telnetFactory = getTelnetFactory(local_commands, default_prompt, **users)
-            reactor.listenTCP(i, sshFactory, interface=interface)
+            factory = None
+            if (protocol_type == "ssh"):
+                factory = MockSSH.getSSHFactory(local_commands, default_prompt, ".", **users)
+            elif (protocol_type == "telnet"):
+                factory = MockSSHExtensions.getTelnetFactory(local_commands, default_prompt, **users)
+
+            reactor.listenTCP(i, factory, interface=interface)
 
         except Exception as e:
+            print >> sys.stderr, traceback.format_exc()
             print "Unable to open port at %s, due to: %s" % (i, e)
 
     reactor.run()

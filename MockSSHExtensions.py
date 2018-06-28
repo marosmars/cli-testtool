@@ -6,6 +6,7 @@ import time
 from threading import Thread
 
 from twisted.conch import avatar, interfaces as conchinterfaces, recvline
+from twisted.conch import manhole
 from twisted.conch.insults import insults
 from twisted.internet.protocol import ClientFactory, ServerFactory
 from twisted.conch.telnet import TelnetTransport, TelnetProtocol, AuthenticatingTelnetProtocol, ITelnetProtocol, TelnetBootstrapProtocol, StatefulTelnetProtocol
@@ -105,24 +106,11 @@ class SimplePromptingCommand(MockSSH.SSHCommand):
         self.exit()
 
 
-# Telnet attempt
-
-class TelnetPrinter(TelnetProtocol):
-  def dataReceived(self, bytes):
-      print 'Received:', repr(bytes)
-
-class TelnetFactory(ClientFactory):
-  def buildProtocol(self, addr):
-      args = (self.portal,)
-      return TelnetTransport(AuthenticatingTelnetProtocol, *args)
-
-
 def getTelnetFactory(commands, prompt, **users):
     if not users:
         raise SSHServerError("You must provide at least one "
                              "username/password combination "
-                             "to run this SSH server.")
-
+                             "to run this Telnet server.")
     cmds = {}
     for command in commands:
         cmds[command.name] = command
@@ -132,31 +120,16 @@ def getTelnetFactory(commands, prompt, **users):
         if exit_cmd not in commands:
             commands[exit_cmd] = MockSSH.command_exit
 
-    # sshFactory = factory.SSHFactory()
-    #sshFactory = TelnetFactory()
-
-    telnetPortal = portal.Portal(
-        _StupidRealm(TelnetBootstrapProtocol, prompt, commands), [checkers.InMemoryUsernamePasswordDatabaseDontUse(**users)])
-    telnetPortal.registerChecker(
-        checkers.InMemoryUsernamePasswordDatabaseDontUse(**users))
-
+    telnetRealm = _StupidRealm(TelnetBootstrapProtocol, prompt, commands)
+ 
+    telnetPortal = portal.Portal(telnetRealm, (checkers.InMemoryUsernamePasswordDatabaseDontUse(**users),))
+    telnetPortal.registerChecker(checkers.InMemoryUsernamePasswordDatabaseDontUse(**users))
+    
     telnetFactory = ServerFactory()
-    telnetFactory.protocol = makeTelnetProtocol(telnetPortal)
+    telnetFactory.protocol = makeTelnetProtocol(telnetPortal, telnetRealm, users)
 
     return telnetFactory
     
-
-class makeTelnetProtocol:
-    def __init__(self, portal):
-        self.portal = portal
- 
-    def __call__(self):
-        #auth = AuthenticatingTelnetProtocol
-        auth = StatefulTelnetProtocol
-        args = (self.portal,)
-        return TelnetTransport(auth, *args)
-
-
 class _StupidRealm:
  
     def __init__(self, proto, prompt, commands):
@@ -167,17 +140,30 @@ class _StupidRealm:
     def requestAvatar(self, avatarId, *interfaces):
         if ITelnetProtocol in interfaces:
             try:
-                print "aaa"
-                return ITelnetProtocol, insults.ServerProtocol(SSHProtocol, self, self.prompt, self.commands), lambda: None
+                args = (avatarId, self.prompt, self.commands,)
+                server = TelnetBootstrapProtocol(insults.ServerProtocol, TelnetProtocol, *args)
+                return ITelnetProtocol, server, lambda: None
             except Exception as e:
                 print e
         raise NotImplementedError()
 
+class makeTelnetProtocol:
+    def __init__(self, portal, telnetRealm, users):
+        self.telnetRealm = telnetRealm
+        self.users = users
+        self.portal = portal
+ 
+    def __call__(self):
+        auth = AuthenticatingTelnetProtocol
+        #auth = telnet.StatefulTelnetProtocol
+        args = (self.portal,)
+        return TelnetTransport(auth, *args)
 
-class SSHProtocol(recvline.HistoricRecvLine):
+
+# This is a copy paste of MockSSH.SSHProtocol changed to work on top of Manhole
+class TelnetProtocol(manhole.Manhole):
 
     def __init__(self, user, prompt, commands):
-        print "a"
         self.user = user
         self.prompt = prompt
         self.commands = commands
@@ -185,28 +171,17 @@ class SSHProtocol(recvline.HistoricRecvLine):
         self.cmdstack = []
 
     def connectionMade(self):
-        print "b"
-
-        recvline.HistoricRecvLine.connectionMade(self)
-        self.cmdstack = [SSHShell(self, self.prompt)]
-
-        transport = self.terminal.transport.session.conn.transport
-        transport.factory.sessions[transport.transport.sessionno] = self
-        # p = self.terminal.transport.session.conn.transport.transport.getPeer()
-        # self.client_ip = p.host
-
-        self.keyHandlers.update({
-            '\x04': self.handle_CTRL_D,
-            '\x15': self.handle_CTRL_U,
-            '\x03': self.handle_CTRL_C,
-        })
+        manhole.Manhole.connectionMade(self)
+        self.cmdstack = [MockSSH.SSHShell(self, self.prompt)]
 
     def lineReceived(self, line):
         if len(self.cmdstack):
             self.cmdstack[-1].lineReceived(line)
+        else:
+            manhole.Manhole.lineReceived(self, line)
 
     def connectionLost(self, reason):
-        recvline.HistoricRecvLine.connectionLost(self, reason)
+        manhole.Manhole.connectionLost(self, reason)
         del self.commands
 
     # Overriding to prevent terminal.reset() and setInsertMode()
@@ -218,10 +193,11 @@ class SSHProtocol(recvline.HistoricRecvLine):
             return self.commands[name]
 
     def keystrokeReceived(self, keyID, modifier):
-        recvline.HistoricRecvLine.keystrokeReceived(self, keyID, modifier)
+        manhole.Manhole.keystrokeReceived(self, keyID, modifier)
 
     # Easier way to implement password input?
     def characterReceived(self, ch, moreCharactersComing):
+        # manhole.Manhole.characterReceived(self, ch, moreCharactersComing)
         self.lineBuffer[self.lineBufferIndex:self.lineBufferIndex + 1] = [ch]
         self.lineBufferIndex += 1
 
@@ -242,17 +218,4 @@ class SSHProtocol(recvline.HistoricRecvLine):
             if self.lineBuffer:
                 self.historyLines.append(''.join(self.lineBuffer))
             self.historyPosition = len(self.historyLines)
-        return recvline.HistoricRecvLine.handle_RETURN(self)
-
-    def handle_CTRL_C(self):
-        self.cmdstack[-1].ctrl_c()
-
-    def handle_CTRL_U(self):
-        for i in range(self.lineBufferIndex):
-            self.terminal.cursorBackward()
-            self.terminal.deleteCharacter()
-        self.lineBuffer = self.lineBuffer[self.lineBufferIndex:]
-        self.lineBufferIndex = 0
-
-    def handle_CTRL_D(self):
-        self.call_command(self.commands['_exit'])
+        return manhole.Manhole.handle_RETURN(self)
