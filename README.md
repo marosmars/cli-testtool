@@ -1,5 +1,6 @@
 # Dealing with too many files open :
 
+```
 echo "fs.file-max=500000
 " | sudo tee --append /etc/sysctl.conf
 
@@ -15,16 +16,21 @@ root            soft nofile 10000
 " | sudo tee --append /etc/security/limits.conf
 
 echo "LOGOUT and LOGIN again so that the limits apply"
+```
 
 ## Running the script to simulated device:
 
+```
 sudo pip install MockSSH==1.4.5
 
 python mockdevice.py 127.0.0.1 9999 11000 devices/cisco_IOS.json
+```
 
 ## Running the script to mount devices in ODL:
 
+```
 ./generateMount.sh 127.0.0.1 10000 10100
+```
 
 # .json files to represent a device :
 
