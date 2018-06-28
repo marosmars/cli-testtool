@@ -23,6 +23,10 @@ body="{
     \"network-topology:node\" : 
     ["
 
+# \"cli-topology:keepalive-delay\": 250,
+# \"cli-topology:keepalive-initial-delay\": 400,
+# \"cli-topology:keepalive-timeout\" : 200,
+
 for port in `seq $LOW_PORT $HIGH_PORT`;
 do
   body="$body
@@ -41,7 +45,7 @@ do
       
       \"cli-topology:journal-size\": 150,
       \"cli-topology:dry-run-journal-size\": 180,
-      
+
       \"reconcile\": false
     }"
 

@@ -99,7 +99,7 @@ class SimplePromptingCommand(MockSSH.SSHCommand):
         if password == self.valid_password:
             self.protocol.prompt = self.newprompt
         else:
-            writeln(error_msg)
+            self.writeln(error_msg)
 
         self.protocol.password_input = False
         self.exit()
