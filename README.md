@@ -18,7 +18,7 @@ root            soft nofile 10000
 echo "LOGOUT and LOGIN again so that the limits apply"
 ```
 
-## Running the script to simulated device:
+## Running the script to simulat a network device device:
 
 ```
 sudo pip install MockSSH==1.4.5
@@ -34,9 +34,10 @@ python mockdevice.py 127.0.0.1 9999 11000 ssh devices/cisco_IOS.json
 
 # .json files to represent a device :
 
-To unescape device condig for the JSON file, use https://codebeautify.org/json-escape-unescape
+To unescape commands and responses for the JSON file, use https://codebeautify.org/json-escape-unescape
 
 # Notes :
 
 Relies on MockSSH package
+
 Scaling: This runs multiple processes and each process handles only a certain number of ports (defined by batch parameter in the script)

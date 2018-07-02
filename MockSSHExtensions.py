@@ -1,7 +1,7 @@
 import os
 import shlex
 import MockSSH
-import sys
+import sys, traceback
 import time
 from threading import Thread
 
@@ -16,6 +16,7 @@ from twisted.conch.ssh import (connection, factory, keys, session, transport,
 from twisted.cred import checkers, portal
 from twisted.internet import reactor
 from zope.interface import implements
+from twisted.cred import credentials
 
 class ShowCommand(MockSSH.SSHCommand):
 
@@ -100,7 +101,7 @@ class SimplePromptingCommand(MockSSH.SSHCommand):
         if password == self.valid_password:
             self.protocol.prompt = self.newprompt
         else:
-            self.writeln(error_msg)
+            self.writeln(self.error_msg)
 
         self.protocol.password_input = False
         self.exit()
@@ -120,7 +121,7 @@ def getTelnetFactory(commands, prompt, **users):
         if exit_cmd not in commands:
             commands[exit_cmd] = MockSSH.command_exit
 
-    telnetRealm = _StupidRealm(TelnetBootstrapProtocol, prompt, commands)
+    telnetRealm = TelnetRealm(prompt, commands)
  
     telnetPortal = portal.Portal(telnetRealm, (checkers.InMemoryUsernamePasswordDatabaseDontUse(**users),))
     telnetPortal.registerChecker(checkers.InMemoryUsernamePasswordDatabaseDontUse(**users))
@@ -130,12 +131,11 @@ def getTelnetFactory(commands, prompt, **users):
 
     return telnetFactory
     
-class _StupidRealm:
+class TelnetRealm:
  
-    def __init__(self, proto, prompt, commands):
+    def __init__(self, prompt, commands):
         self.prompt = prompt
         self.commands = commands
-        self.protocolFactory = proto
  
     def requestAvatar(self, avatarId, *interfaces):
         if ITelnetProtocol in interfaces:
@@ -144,7 +144,8 @@ class _StupidRealm:
                 server = TelnetBootstrapProtocol(insults.ServerProtocol, TelnetProtocol, *args)
                 return ITelnetProtocol, server, lambda: None
             except Exception as e:
-                print e
+                print >> sys.stderr, traceback.format_exc()
+                print "Unable to open session for %s, due to: %s" % (avatarId, e)
         raise NotImplementedError()
 
 class makeTelnetProtocol:
@@ -154,8 +155,8 @@ class makeTelnetProtocol:
         self.portal = portal
  
     def __call__(self):
-        auth = AuthenticatingTelnetProtocol
-        #auth = telnet.StatefulTelnetProtocol
+        auth = CustomAuthenticatingTelnetProtocol
+        #auth = StatefulTelnetProtocol
         args = (self.portal,)
         return TelnetTransport(auth, *args)
 
@@ -219,3 +220,26 @@ class TelnetProtocol(manhole.Manhole):
                 self.historyLines.append(''.join(self.lineBuffer))
             self.historyPosition = len(self.historyLines)
         return manhole.Manhole.handle_RETURN(self)
+
+# Extends the class from twisted to remove sending do and don't ECHO options during authentication
+class CustomAuthenticatingTelnetProtocol(AuthenticatingTelnetProtocol):
+
+    state = "User"
+    protocol = None
+
+    def __init__(self, portal):
+        self.portal = portal
+
+    def telnet_User(self, line):
+        self.username = line
+        self.transport.write(b"Password: ")
+        return 'Password'
+
+    def telnet_Password(self, line):
+        username, password = self.username, line
+        del self.username
+        creds = credentials.UsernamePassword(username, password)
+        d = self.portal.login(creds, None, ITelnetProtocol)
+        d.addCallback(self._cbLogin)
+        d.addErrback(self._ebLogin)
+        return 'Discard'

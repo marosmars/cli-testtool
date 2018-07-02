@@ -62,33 +62,38 @@ def main():
 
     global pool
     process_pool_size = processes if last_batch <=0 else (processes + 1)
-    print "Spawning pool with %s processes" % process_pool_size
-    pool = multiprocessing.Pool(processes if last_batch <=0 else (processes + 1))
 
-    args = []
-    for i in range(0, processes):
+    if process_pool_size == 1:
+        print "Running in a single process"
+        spawn_server(port_low, port_high, interface, protocol_type, data)
+    else:
+        print "Spawning pool with %s processes" % process_pool_size
+        pool = multiprocessing.Pool(processes if last_batch <=0 else (processes + 1))
 
-        starting_port = port_low + i*batch_size
-        ending_port = port_low + batch_size + i*batch_size
-        print "Spawning process for ports: %s - %s" % (starting_port, ending_port)
-        if i == processes - 1:
-            ending_port = ending_port + 1
+        args = []
+        for i in range(0, processes):
 
-        args.append((starting_port, ending_port, interface, protocol_type, data))
+            starting_port = port_low + i*batch_size
+            ending_port = port_low + batch_size + i*batch_size
+            print "Spawning process for ports: %s - %s" % (starting_port, ending_port)
+            if i == processes - 1:
+                ending_port = ending_port + 1
 
-    r = pool.map_async(spawn_server_wrapper, args)
+            args.append((starting_port, ending_port, interface, protocol_type, data))
 
-    if last_batch > 0:
-        starting_port = port_low + processes*batch_size + 1
-        ending_port = port_high + 1
-        print "Spawning process for ports: %s - %s" % (starting_port, ending_port)
-        r2 = pool.map_async(spawn_server_wrapper, [(starting_port, ending_port, interface, protocol_type, data)])
-        try:
-            r2.wait()
-        except KeyboardInterrupt:
-            r.wait()
+        r = pool.map_async(spawn_server_wrapper, args)
 
-    r.wait()
+        if last_batch > 0:
+            starting_port = port_low + processes*batch_size + 1
+            ending_port = port_high + 1
+            print "Spawning process for ports: %s - %s" % (starting_port, ending_port)
+            r2 = pool.map_async(spawn_server_wrapper, [(starting_port, ending_port, interface, protocol_type, data)])
+            try:
+                r2.wait()
+            except KeyboardInterrupt:
+                r.wait()
+
+        r.wait()
 
 def spawn_server_wrapper(args):
     spawn_server(*args)
