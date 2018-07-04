@@ -15,7 +15,8 @@ Building configuration...
 hostname#
 """
 
-import sys, time
+import sys, time, os
+#import psutil
 import MockSSH
 import MockSSHExtensions
 import traceback
@@ -99,6 +100,11 @@ def spawn_server_wrapper(args):
     spawn_server(*args)
 
 def spawn_server(port_low, port_high, interface, protocol_type, data):
+    #p = psutil.Process(os.getpid())
+    try:
+        os.nice(-1)
+    except Exception as e:
+        print "Unable to lower niceness, RUN AS SUDO"
 
     for i in range(port_low, port_high):
         try:
