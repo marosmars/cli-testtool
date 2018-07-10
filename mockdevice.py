@@ -1,25 +1,13 @@
 #!/usr/bin/python
 #
-"""
-This is how it should be used:
-
-hostname>en
-Password:
-hostname#conf t
-Enter configuration commands, one per line. End with CNTL/Z
-hostname(config)#username admin password secure
-hostname(config)#exit
-hostname#wr m
-Building configuration...
-[OK]
-hostname#
-"""
 
 import sys, time, os
 #import psutil
 import MockSSH
 import MockSSHExtensions
 import traceback
+from random import randint
+from time import sleep
 
 import json
 from collections import defaultdict
@@ -80,7 +68,7 @@ def main():
             if i == processes - 1:
                 ending_port = ending_port + 1
 
-            args.append((starting_port, ending_port, interface, protocol_type, data))
+            args.append((i, starting_port, ending_port, interface, protocol_type, data))
 
         r = pool.map_async(spawn_server_wrapper, args)
 
@@ -88,7 +76,7 @@ def main():
             starting_port = port_low + processes*batch_size + 1
             ending_port = port_high + 1
             print "Spawning process for ports: %s - %s" % (starting_port, ending_port)
-            r2 = pool.map_async(spawn_server_wrapper, [(starting_port, ending_port, interface, protocol_type, data)])
+            r2 = pool.map_async(spawn_server_wrapper, [(processes, starting_port, ending_port, interface, protocol_type, data)])
             try:
                 r2.wait()
             except KeyboardInterrupt:
@@ -97,17 +85,21 @@ def main():
         r.wait()
 
 def spawn_server_wrapper(args):
-    spawn_server(*args)
+    # Wait N * 500 milliseconds to prevent all sub processes to start at once (e.g. batch 7 would wait 3.5 seconds before starting)
+    # If processes start at once, this error might occur: https://twistedmatrix.com/trac/ticket/4759
+    sleep((500.0 * args[0]) / 1000)
+    spawn_server(*args[1:])
 
 def spawn_server(port_low, port_high, interface, protocol_type, data):
     #p = psutil.Process(os.getpid())
     try:
         os.nice(-1)
     except Exception as e:
-        print "Unable to lower niceness, RUN AS SUDO"
+        print "Unable to lower niceness(priority), RUN AS SUDO, running with normal priority"
 
     for i in range(port_low, port_high):
         try:
+            print "Spawning "
             show_commands, prompt_change_commands, usr, passwd, cmd_delay, default_prompt = parse_commands(data)
 
             users = {usr : passwd}
@@ -156,14 +148,14 @@ def parse_commands(data):
     for cmd in data:
         if isinstance(data[cmd], dict):
             prompt_change_commands[cmd] = data[cmd]
-            print "Adding prompt changing command: %s" % cmd
+            #print "Adding prompt changing command: %s" % cmd
         else:
             cmd_split = cmd.split(" ", 1)
             if (len(cmd_split) == 1):
                 show_commands[cmd_split[0]]
             else:
                 show_commands[cmd_split[0]].append(cmd_split[1])
-            print "Adding show command: %s, with arguments: %s" % (cmd, show_commands[cmd])
+            #print "Adding show command: %s, with arguments: %s" % (cmd, show_commands[cmd])
 
     return (show_commands, prompt_change_commands, usr, passwd, cmd_delay, default_prompt)
 
