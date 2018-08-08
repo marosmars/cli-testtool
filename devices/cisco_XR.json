@@ -1,5 +1,5 @@
 {
-    "show running-config": "Mon Jun 25 06:54:45.748 UTC\nBuilding configuration...\n!! IOS XR Configuration 6.1.2\n!! Last configuration change at Mon Jun 25 06:52:46 2018 by cisco\n!\nhostname PE3\ntelnet vrf default ipv4 server max-servers 10\ndomain name demo.frinx.io\ndomain lookup disable\ncdp\nvrf 33\n!\nvrf THIS_IS_MY_VRF_DO_NOT_TOUCH\n address-family ipv4 unicast\n !\n!\ninterface Loopback98\n!\ninterface MgmtEth0/0/CPU0/0\n ipv4 address 192.168.1.213 255.255.255.0\n!\ninterface GigabitEthernet0/0/0/0\n shutdown\n!\ninterface GigabitEthernet0/0/0/1\n shutdown\n!\ninterface GigabitEthernet0/0/0/2\n vrf OTHER_SCH_VRF\n!\ninterface GigabitEthernet0/0/0/3\n vrf OTHER_SCH_VRF\n!\ninterface GigabitEthernet0/0/0/4\n shutdown\n!\ninterface GigabitEthernet0/0/0/5\n shutdown\n!\nroute-policy PASS_ALL\n  pass\nend-policy\n!\nnetconf-yang agent\n ssh\n!\nssh server v2\nssh server netconf vrf default\nssh timeout 120\nend\n\n",
+    "show running-config": "Mon Jun 25 06:54:45.748 UTC\nBuilding configuration...\n!! IOS XR Configuration 6.1.2\n!! Last configuration change at Mon Jun 25 06:52:46 2018 by cisco\n!\nhostname PE3\ntelnet vrf default ipv4 server max-servers 10\ndomain name demo.frinx.io\ndomain lookup disable\ncdp\nvrf 33\n!\nvrf THIS_IS_MY_VRF_DO_NOT_TOUCH\n address-family ipv4 unicast\n !\n!\ninterface Loopback98\n!\ninterface MgmtEth0/0/CPU0/0\n ipv4 address 192.168.1.213 255.255.255.0\n!\ninterface GigabitEthernet0/0/0/0\n shutdown\n!\ninterface GigabitEthernet0/0/0/1\n shutdown\n!\ninterface GigabitEthernet0/0/0/2\n vrf OTHER_SCH_VRF\n!\ninterface GigabitEthernet0/0/0/3\n vrf OTHER_SCH_VRF\n!\ninterface GigabitEthernet0/0/0/4\n shutdown\n!\ninterface GigabitEthernet0/0/0/5\n shutdown\n!\nroute-policy PASS_ALL\n  pass\nend-policy\n!\nrouter bgp 100\n address-family ipv4 unicast\n !\n address-family vpnv4 unicast\n !\n!\nnetconf-yang agent\n ssh\n!\nssh server v2\nssh server netconf vrf default\nssh timeout 120\nend\n\n",
     "show configuration commit list | utility egrep ^1 ": "",
     
     "setting_default_prompt": "RP/0/0/CPU0:PE3#",
@@ -13,8 +13,8 @@
     "terminal length 0": "OK",
     "terminal width 0": "OK",
 
-    "conf": {
-    	"name": "conf",
+    "configure": {
+    	"name": "configure",
     	"newprompt": "RP/0/0/CPU0:PE3(config)#"
     },
 
@@ -31,5 +31,8 @@
     "end": {
     	"name": "end",
     	"newprompt": "RP/0/0/CPU0:PE3#"
-    }
+    },
+
+	"exit": ""
+
 }
