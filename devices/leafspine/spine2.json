@@ -9,7 +9,7 @@
     "show lldp neighbors Ethernet1/3 detail": "------------------------------------------------\nChassis id: aabb.cc00.0300\nPort id: Et0/0\nPort Description: Ethernet0/0\nSystem Name: Leaf04.frinx.io\n\nSystem Description: \nCisco IOS Software, Linux Software (I86BI_LINUX-ADVENTERPRISEK9-M), Version 15.4(1)T, DEVELOPMENT TEST SOFTWARE\nTechnical Support: http://www.cisco.com/techsupport\nCopyright (c) 1986-2013 by Cisco Systems, Inc.\nCompiled Sat 23-Nov-13 03:28 by prod_rel_tea\n\nTime remaining: 94 seconds\nSystem Capabilities: B,R\nEnabled Capabilities: R\nManagement Addresses:\n    IP: 10.0.0.8\nAuto Negotiation - not supported\nPhysical media capabilities - not advertised\nMedia Attachment Unit type - not advertised\nVlan ID: - not advertised\n",
 
 
-    "sh ru | include ^hostname|^ip domain name": "hostname Spine02\ndomain name frinx.io",
+    "show running-config | include ^hostname|^ip domain name": "hostname Spine02\ndomain name frinx.io",
     "show history all | include Configured from": "",
     
     "setting_default_prompt": "Spine2>",
