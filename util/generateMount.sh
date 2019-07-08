@@ -12,8 +12,8 @@ MOUNT_ID_PREFIX="cli-"
 
 # These two variables values are dynamically replaced by 'password-setup.sh'
 # script in FRINX Machine.
-USERNAME=""
-PASSWORD=""
+USERNAME="admin"
+PASSWORD="admin"
 
 # Remove all cli nodes
 echo "Removing all cli nodes"
