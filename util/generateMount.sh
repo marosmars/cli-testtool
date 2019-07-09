@@ -73,7 +73,7 @@ body="$body
 echo "Sending mount requests"
 #echo $body
 
-curl -s -u "${USERNAME}:${PASSWORD}" -d @- -H "Content-Type: application/json" -X POST http://localhost:8181/restconf/config/network-topology:network-topology/topology/cli/ <<CURL_DATA
+curl -s -u "${USERNAME}:${PASSWORD}" -d @- -H "Content-Type: application/json" -X POST "${SCHEME}://${ODL_HOST}:${ODL_PORT}/restconf/config/network-topology:network-topology/topology/cli/" <<CURL_DATA
 $body
 CURL_DATA
 
